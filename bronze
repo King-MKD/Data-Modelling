@@ -1,0 +1,27 @@
+🪙 BRONZE LAYER
+if spark.catalog.tableExists("data_modelling.bronze.bronze_table"):
+    last_load = spark.sql("""
+        SELECT COALESCE(MAX(last_updated), '1900-01-01 00:00:00') AS last_load
+        FROM data_modelling.bronze.bronze_table
+    """).collect()[0]['last_load']
+else:
+    last_load = "1900-01-01 00:00:00"
+
+df = spark.sql(f"""
+    SELECT *
+    FROM data_modelling.default.source_data
+    WHERE last_updated > '{last_load}'
+""").dropDuplicates(["order_id"])
+
+df.createOrReplaceTempView("bronze_source")
+
+
+CREATE TABLE IF NOT EXISTS data_modelling.bronze.bronze_table AS
+SELECT * FROM bronze_source WHERE 1=0;
+
+
+MERGE INTO data_modelling.bronze.bronze_table AS b
+USING bronze_source AS s
+ON b.order_id = s.order_id
+WHEN MATCHED THEN UPDATE SET *
+WHEN NOT MATCHED THEN INSERT *;
