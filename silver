@@ -1,0 +1,20 @@
+✨ SILVER LAYER
+
+SELECT *,
+       UPPER(customer_name) AS customer_name_upper,
+       CURRENT_DATE() AS process_date
+FROM data_modelling.bronze.bronze_table;
+
+
+spark.sql(""" data_modelling.bronze.bronze_table """).createOrReplaceTempView("silver_source")
+
+
+CREATE TABLE IF NOT EXISTS data_modelling.silver.silver_table AS
+SELECT * FROM silver_source WHERE 1=0;
+
+
+MERGE INTO data_modelling.silver.silver_table AS t
+USING silver_source AS s
+ON t.order_id = s.order_id
+WHEN MATCHED THEN UPDATE SET *
+WHEN NOT MATCHED THEN INSERT *;
