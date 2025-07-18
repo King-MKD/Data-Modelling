@@ -1,0 +1,55 @@
+🔷 SCD Type 1
+
+
+CREATE OR REPLACE TABLE data_modelling.default.scdtype1_source (
+  product_id INT, product_name STRING, product_category STRING, process_date DATE
+);
+
+INSERT INTO data_modelling.default.scdtype1_source VALUES
+(1,'product1','cat1',CURRENT_DATE()),
+(2,'product2','cat2',CURRENT_DATE()),
+(3,'product3','cat3',CURRENT_DATE());
+
+CREATE OR REPLACE TABLE data_modelling.gold.scdtype1_table (
+  product_id INT, product_name STRING, product_category STRING, process_date DATE
+);
+
+
+MERGE INTO data_modelling.gold.scdtype1_table AS trg
+USING src
+ON src.product_id = trg.product_id
+WHEN MATCHED AND src.process_date > trg.process_date THEN UPDATE SET *
+WHEN NOT MATCHED THEN INSERT *;
+🔷 SCD Type 2
+
+
+CREATE OR REPLACE TABLE data_modelling.default.scdtype2_source (
+  product_id INT, product_name STRING, product_category STRING, process_date DATE
+);
+
+INSERT INTO data_modelling.default.scdtype2_source VALUES
+(1,'product1','cat1',CURRENT_DATE()),
+(2,'product2','cat2',CURRENT_DATE()),
+(3,'product3','cat3',CURRENT_DATE());
+
+CREATE TABLE data_modelling.gold.scdtype2_table (
+  product_id INT, product_name STRING, product_category STRING, process_date DATE,
+  start_date DATE, end_date DATE, is_current STRING
+);
+
+
+MERGE INTO data_modelling.gold.scdtype2_table AS trg
+USING src
+ON src.product_id = trg.product_id AND trg.is_current = 'Y'
+WHEN MATCHED AND (
+     src.product_category <> trg.product_category
+  OR src.product_name <> trg.product_name
+) THEN UPDATE
+SET trg.end_date = DATE(CURRENT_TIMESTAMP()), trg.is_current = 'N'
+WHEN NOT MATCHED THEN INSERT (
+    product_id, product_category, process_date, product_name,
+    start_date, end_date, is_current
+) VALUES (
+    src.product_id, src.product_category, src.process_date, src.product_name,
+    DATE(CURRENT_TIMESTAMP()), DATE('3000-01-01'), 'Y'
+);
