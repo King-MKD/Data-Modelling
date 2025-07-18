@@ -1,0 +1,54 @@
+🌟 GOLD LAYER
+
+CREATE OR REPLACE TABLE data_modelling.gold.dimCustomers AS
+SELECT *, row_number() OVER(ORDER BY customer_id) AS row_num
+FROM (
+  SELECT DISTINCT customer_id, customer_email, customer_name, customer_name_upper
+  FROM data_modelling.silver.silver_table
+);
+
+
+CREATE OR REPLACE TABLE data_modelling.gold.dim_products AS
+SELECT *, row_number() OVER(ORDER BY product_id) AS dimproductkey
+FROM (
+  SELECT DISTINCT product_id, product_name
+  FROM data_modelling.silver.silver_table
+);
+
+
+CREATE OR REPLACE TABLE data_modelling.gold.dimpayments AS
+WITH rem_dup AS (
+  SELECT DISTINCT payment_type
+  FROM data_modelling.silver.silver_table
+)
+SELECT *, row_number() OVER(ORDER BY payment_type) AS dimpaymentkey
+FROM rem_dup;
+
+
+
+CREATE OR REPLACE TABLE data_modelling.gold.dimcountry AS
+WITH rem_dup AS (
+  SELECT DISTINCT country
+  FROM data_modelling.silver.silver_table
+)
+SELECT *, row_number() OVER(ORDER BY country) AS dimcountrykey
+FROM rem_dup;
+
+
+CREATE OR REPLACE TABLE data_modelling.gold.dimsalekey AS
+SELECT row_number() OVER(ORDER BY order_id) AS dimsalekey,
+       order_id, order_date, customer_id, customer_name,
+       customer_email, product_id, product_name, payment_type,
+       country, last_updated, customer_name_upper, process_date
+FROM data_modelling.silver.silver_table;
+
+
+CREATE OR REPLACE TABLE data_modelling.gold.fact_sales AS
+SELECT c.row_num, p.dimproductkey, pay.dimpaymentkey, co.dimcountrykey,
+       sk.dimsalekey, s.quantity, s.unit_price
+FROM data_modelling.silver.silver_table s
+LEFT JOIN data_modelling.gold.dimCustomers c ON s.customer_id = c.customer_id
+LEFT JOIN data_modelling.gold.dim_products p ON s.product_id = p.product_id
+LEFT JOIN data_modelling.gold.dimpayments pay ON s.payment_type = pay.payment_type
+LEFT JOIN data_modelling.gold.dimcountry co ON s.country = co.country
+LEFT JOIN data_modelling.gold.dimsalekey sk ON s.order_id = sk.order_id;
