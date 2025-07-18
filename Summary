@@ -1,0 +1,8 @@
+📜 Summary of layers:
+Layer	Purpose
+🗃️ Source	- Raw source data
+🪙 Bronze	- Incremental, deduplicated, raw
+✨ Silver- 	Cleaned, enriched
+🌟 Gold	Star- schema (facts + dimensions)
+🔁 SCD1-	Overwrite slowly changing dimensions
+🔁 SCD2	- Track history of dimensions
